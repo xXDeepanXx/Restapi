@@ -104,7 +104,7 @@ public class IlaCalls {
              			}
              			break;
              	case "Save Default-Salaried": 
-             		Sheet defaultValues = workbook.getSheetAt(1);
+             		Sheet defaultValues = workbook.getSheetAt(4);
              		Iterator<Row> defaultValuesRows = defaultValues.iterator();
              		while (defaultValuesRows.hasNext() && notAtEnd) { 
 
@@ -127,7 +127,7 @@ public class IlaCalls {
              		a.MoveStageAll(type);
              		break;
              	case "Save Default-Self Employed": 
-             		Sheet defaultValues1 = workbook.getSheetAt(1);
+             		Sheet defaultValues1 = workbook.getSheetAt(4);
              		Iterator<Row> defaultValuesRows1 = defaultValues1.iterator();
              		while (defaultValuesRows1.hasNext() && notAtEnd) { 
 
@@ -148,7 +148,30 @@ public class IlaCalls {
                         
              		}
              		a.MoveStageAll(type);
-             		break;             	
+             		break;
+             	case "Save Default-Self Employed Professional": 
+             		Sheet defaultValues11 = workbook.getSheetAt(4);
+             		Iterator<Row> defaultValuesRows11 = defaultValues11.iterator();
+             		while (defaultValuesRows11.hasNext() && notAtEnd) { 
+
+                        Row defaultcurrentRow = defaultValuesRows11.next();
+                        
+                        
+                        Iterator<Cell> defaultcellIterator = defaultcurrentRow.iterator();
+                        String DefaultType = formatter.formatCellValue(defaultcellIterator.next());
+                        
+                        //System.out.println(DefaultType);
+                        //System.out.println(type);
+                        
+                       if(DefaultType.equals(type)||DefaultType.equals(type.concat("-SelfProf")))
+                       {
+                    	   String RawData  = formatter.formatCellValue(defaultcellIterator.next());
+                    	   a.DefaultData(type, RawData);
+                    	}
+                        
+             		}
+             		a.MoveStageAll(type);
+             		break;  
              		}
              }
             }
