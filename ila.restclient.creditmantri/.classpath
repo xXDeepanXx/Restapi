@@ -5,12 +5,13 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry excluding="ila/restclient/creditmantri/main/resources/|ila/restclient/creditmantri/main/resources/" kind="src" output="target/classes" path="src">
+	<classpathentry excluding="ila/restclient/creditmantri/main/resources/|ila/restclient/creditmantri/main/resources/|ila/restclient/creditmantri/main/resources/|ila/restclient/creditmantri/main/" kind="src" output="target/classes" path="src">
 		<attributes>
 			<attribute name="optional" value="true"/>
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="src" path="src/ila/restclient/creditmantri/main"/>
 	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
 		<attributes>
 			<attribute name="maven.pomderived" value="true"/>

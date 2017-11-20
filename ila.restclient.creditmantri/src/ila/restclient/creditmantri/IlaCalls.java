@@ -1,13 +1,17 @@
 package ila.restclient.creditmantri;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.logging.Level;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -24,9 +28,10 @@ public class IlaCalls {
 	 
 	
 
-	public static void main(String[] args) throws JsonProcessingException {
+	public static void main(String[] args) throws JsonProcessingException  {
 		
 		Boolean notAtEnd= true;
+	
 		
 		FileInputStream excelFile = null;
 		try {
@@ -40,10 +45,12 @@ public class IlaCalls {
 			workbook = new XSSFWorkbook(excelFile);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e.printStackTrace(); 
 		}
         Sheet datatypeSheet = workbook.getSheetAt(0);
         Iterator<Row> iterator = datatypeSheet.iterator();
+        String prevuser = null;
+        IlaApi a = null;
 
 		while (iterator.hasNext() && notAtEnd) {
 
@@ -67,18 +74,24 @@ public class IlaCalls {
              String type = formatter.formatCellValue(cellIterator.next());
              String Action = formatter.formatCellValue(cellIterator.next());
              
-             if(user.equals("UserName"))
-             {continue;}
-             IlaApi a = new IlaApi(user,pass);
+             //if(user.equals("UserName"))
+             //{continue;}
+             MyLogger.log(Level.INFO,"User :" + user + "  |Offer Type : "+type+"  |Action : "+   Action);
+             if (!user.equals(prevuser)||user.equals(null))
+             {a = new IlaApi(user,pass);}
+             //MyLogger.log(Level.INFO, (a.statuscode));
+             
+             //System.out.println(a.statuscode);
              switch (a.statuscode)
-             {
-             case 401: System.out.println("Invalid username or password: Skipping record--- |User ID : "+user+"|Offer Type:"+ type+"|Action:"+ Action);
-             break;
+             { 
+             //case 9999: MyLogger.log(Level.SEVERE,("Skipping record--- |User ID : "+user+"|Offer Type:"+ type+"|Action:"+ Action));
+             //break;
              case 200:
              	switch (Action)
              		{
              			case "All Offers":
              			a.AllOffers(type);
+             			
              			break;
              	case "Prefilled Details": 
              			a.GetPrefilled(type);
@@ -174,6 +187,7 @@ public class IlaCalls {
              		break;  
              		}
              }
+             prevuser = user;
             }
 		}
 		System.out.println("");

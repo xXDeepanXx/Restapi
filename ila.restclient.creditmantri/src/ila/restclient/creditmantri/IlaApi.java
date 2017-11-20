@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.apache.poi.ss.usermodel.Cell;
 
@@ -19,43 +20,66 @@ import com.google.gson.JsonParser;
 public class IlaApi {
 	static RestHTTP request;
 	public int statuscode;
+	public String errmsg;
 	static JsonParser jp = new JsonParser();
 	static ObjectMapper mapper = new ObjectMapper();
 	public IlaApi(String user,String password)
 	{
 	 request = new RestHTTP(user,password);
-	 this.statuscode = request.statuscode;
+	  
+	 if (request.statuscode > 400) 
+	 { this.errmsg = jp.parse(request.response.asString()).getAsJsonObject().get("data").getAsJsonObject().get("errors").getAsJsonArray().get(0).getAsJsonObject().get("message").getAsString(); 
+	 MyLogger.log(Level.SEVERE, this.errmsg);
+	 this.statuscode = 9999;}	
+	 else
+	 {this.statuscode = request.statuscode;}
 	}
 
-public static String OfferEligibilityCheck(String type) {
+public static String OfferEligibilityCheck(String type)   {
 		
 		String payload = null;
 		
-		try {
+		
 			OfferCheck oc = new OfferCheck();
 			oc.SetLeadId(GetLeadId(type));
-			payload = mapper.writeValueAsString(oc);
-			System.out.println(payload);
-			} 
-		catch (JsonProcessingException e) {	e.printStackTrace();}
+			try {
+				payload = mapper.writeValueAsString(oc);
+			} catch (JsonProcessingException e) {
+				// TODO Auto-generated catch block
+				MyLogger.log(Level.SEVERE, "OfferEligibilityCheck Json Error:" + payload);
+				e.printStackTrace();
+			}
+			//System.out.println(payload);
+			
 		
 		
 		String response =  request.DoPost("OfferEligibilityCheck",type ,payload);
-		System.out.println(response);
+		//System.out.println(response);
+		int statuscode = jp.parse(response).getAsJsonObject().get("statusCode").getAsInt();
+		if (statuscode != 200)
+		{	MyLogger.log(Level.SEVERE, "OfferEligibilityCheck Request Json :" + payload);
+			MyLogger.log(Level.SEVERE, response);}
 		return response;
 		
 	}
 
-public static String EligibiltyForm(String type) {
+public static String EligibiltyForm(String type)  {
 	String payload = null;
 	
-	try {
-		payload = mapper.writeValueAsString(new OfferForm());
-		} 
-	catch (JsonProcessingException e) {	e.printStackTrace();}
 	
-	
+		try {
+			payload = mapper.writeValueAsString(new OfferForm());
+		} catch (JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			MyLogger.log(Level.SEVERE, "EligibiltyForm Json Error:" + payload);
+			e.printStackTrace();
+		}
+		
 	String response =  request.DoPost("OfferEligibilityForm",type ,payload);
+	int statuscode = jp.parse(response).getAsJsonObject().get("statusCode").getAsInt();
+	if (statuscode != 200)
+	{	MyLogger.log(Level.SEVERE, "OfferEligibilityForm Request Json :" + payload);
+		MyLogger.log(Level.SEVERE, response);}
 	return response;
 	
 	
@@ -63,7 +87,7 @@ public static String EligibiltyForm(String type) {
 	
 
 
-public String AllOffers(String type) {
+public String AllOffers(String type)  {
 	
 	List<String> approved = new ArrayList<String>(),unapproved = new ArrayList<String>();
 	String response = IlaApi.OfferEligibilityCheck(type);
@@ -86,8 +110,10 @@ public String AllOffers(String type) {
 	{
 		unapproved.add(noteligible.get(i).getAsJsonObject().getAsJsonObject().get("slug").getAsString());
 	}
-	
+	MyLogger.log(Level.INFO, "Approved Count: " + approvedcount +"| Offers: "+ approved.toString());
+	MyLogger.log(Level.INFO, "Unapproved Count: " + unapprovedcount +"| Offers: "+ unapproved.toString());
 	Display d= new Display();
+	
 	d.DisplayAllOffer(approved, unapproved);
 	return response;
 	
@@ -95,81 +121,59 @@ public String AllOffers(String type) {
 
 
 
-	public static int GetLeadId(String type) {
+	public static int GetLeadId(String type)  {
 		
 		String response =  IlaApi.EligibiltyForm(type);
-		//System.out.println(response);
 		int  leadid = jp.parse(response).getAsJsonObject().get("leadId").getAsInt();
-		//GenerateDatarecur(jp.parse(response).getAsJsonObject());
-		//GenerateDatarecur(type,"Salaried");
+		int statuscode = jp.parse(response).getAsJsonObject().get("statusCode").getAsInt();
+		if (statuscode != 200)
+		{	MyLogger.log(Level.SEVERE, response);}
 		return leadid;
 		
 		
 	}
 
-public void DefaultData(String type,String rawData) throws JsonProcessingException
+public String DefaultData(String type,String rawData)
 {
 	RawAnswer raw = new RawAnswer();
 	raw.setLeadId(GetLeadId(type));
 	raw.setrawAnswers("<RawAnswer>");
-	String payload = mapper.writeValueAsString(raw);
+	String payload = null;
+	try {
+		payload = mapper.writeValueAsString(raw);
+	} catch (JsonProcessingException e) {
+		MyLogger.log(Level.SEVERE, "DefaultData Json Error:" + payload);
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
 	
 	payload = payload.replaceAll("\"<RawAnswer>\"", rawData);
 	
 	System.out.println("SAVING DEFAULT VALUES:    "+payload);
 	String  response =  request.DoPost("SaveAnswers",type,payload);
-	System.out.println(response);
+	int statuscode = jp.parse(response).getAsJsonObject().get("statusCode").getAsInt();
+	if (statuscode != 200)
+	{	MyLogger.log(Level.SEVERE, "DefaultData Request Json :" + payload);
+		MyLogger.log(Level.SEVERE, response);}
+	//System.out.println(response);
+	return response;
 	
 	}
-public void MoveStageAll(String type) throws JsonProcessingException {
-	System.out.print("MOVING STAGE:    ");
-	this.MoveStage(type,"personal");
-	this.MoveStage(type,"income");
-	this.MoveStage(type,"others");
+public String MoveStageAll(String type)  {
+	String response = "MOVING STAGE:    ";
+	
+	String temp = this.MoveStage(type,"personal");
+	response = response + temp;
+	temp = this.MoveStage(type,"income");
+	response = response + temp;
+	temp = this.MoveStage(type,"others");
+	response = response + temp;
+	System.out.print(response);
+	return response;
+	
 	
 }
-	//@Deprecated
-public static void Generatedata(String type, String EmploymentType) {
-		
-		String response =  IlaApi.EligibiltyForm(type);
-		StaticQslug Qslug = new StaticQslug();
-		List<Answer> GenerateAnswer = new ArrayList<Answer>();
-
-		//EmploymentType = "salaried";
-		JsonObject  questions = jp.parse(response).getAsJsonObject().get("form").getAsJsonObject().get("questions").getAsJsonObject();
-		Iterator<String> formkeys = questions.keySet().iterator();
-		while (formkeys.hasNext())
-		{ String node =formkeys.next();
-		//node.split("__");
-		if ((node.toLowerCase().contains("employmenttype:"+EmploymentType))||!(node.toLowerCase().contains("employmenttype")))
-		{//System.out.println(node);
-		
-		String questionid = questions.getAsJsonObject(node).getAsJsonObject("questionDetails").get("id").getAsString();
-		//String serverrules = questions.getAsJsonObject(node).getAsJsonObject("rules").get("serverRules").getAsString();
-		String questionlabel = questions.getAsJsonObject(node).getAsJsonObject("questionDetails").get("label").getAsString();
-		JsonObject answers = questions.getAsJsonObject(node).getAsJsonObject("answers");
-		//System.out.print(questionid + "     " + "          "+ Qslug.getQuestionSlug(questionid)+"     "+ChooseRandom(answers));
-		System.out.print(Qslug.getQuestionSlug(questionid)+","+ChooseRandom(answers)+",");
-		}		
-		}
-		System.out.println(Qslug.getQuestionSlug("3")+","+EmploymentType);
-		//System.out.println(formkeys); 
-		//System.out.println(formkeys.size()); 
-		//System.out.println(form.;
-		
-		}@Deprecated
-public static String ChooseRandom(JsonObject options) {
-	
-	if (options != null) {
-	String option;
-	List<String> choiceList = new ArrayList<String>(options.keySet());
-	int item = new Random().nextInt(options.size()); 
-	option = choiceList.get(item);
-	return option;	
-}else return null;
-}
-	
-	public JsonObject GetPrefilled(String type) {
+		public JsonObject GetPrefilled(String type)  {
 		
 		String response =  IlaApi.EligibiltyForm(type);
 		System.out.println(response);
@@ -180,18 +184,24 @@ public static String ChooseRandom(JsonObject options) {
 		
 	}
 	
-	public void UpdateAnswer(String type,String question, String answer) throws JsonProcessingException 
+	public void UpdateAnswer(String type,String question, String answer) 
 	{
 		String payload = null;
 		SaveAnswer sa = new SaveAnswer();
 		sa.setLeadId(GetLeadId(type));
 		sa.set(question, answer);		
 		
-		payload = mapper.writeValueAsString(sa);
+		try {
+			payload = mapper.writeValueAsString(sa);
+		} catch (JsonProcessingException e) {
+			MyLogger.log(Level.SEVERE, "UpdateAnswer Json Error:" + payload);
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		String  response =  request.DoPost("SaveAnswer",type,payload);
-		
+		this.MoveStageAll(type);
 	}
-	public void UpdateAnswersList(String type,List<Answer> answer) throws JsonProcessingException 
+	public String UpdateAnswersList(String type,List<Answer> answer) 
 		{
 		SaveAnswer sa = new SaveAnswer();
 		String payload = null;
@@ -199,26 +209,40 @@ public static String ChooseRandom(JsonObject options) {
 		sa.setAnswers(answer);		
 		
 		
-		payload = mapper.writeValueAsString(sa);
+		try {
+			payload = mapper.writeValueAsString(sa);
+		} catch (JsonProcessingException e) {
+			MyLogger.log(Level.SEVERE, "UpdateAnswerList Json Error:" + payload);
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		System.out.println(payload);
 		
 		String  response =  request.DoPost("SaveAnswers",type,payload);
-		System.out.println(response);
-		this.MoveStageAll(type);
+		return response;
+		//System.out.println(response);
+		//this.MoveStageAll(type);
 		}
 	
-	public void MoveStage(String type,String Stage) throws JsonProcessingException 
+	private String MoveStage(String type,String Stage) 
 	{
 	String payload = null;
 	OfferCheck ms = new OfferCheck();
 	
 	ms.SetLeadId(GetLeadId(type));
 	
-	payload = mapper.writeValueAsString(ms);
+	try {
+		payload = mapper.writeValueAsString(ms);
+	} catch (JsonProcessingException e) {
+		MyLogger.log(Level.SEVERE, "MoveStage Json Error:" + payload);
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
 	//System.out.println(payload);
 	
 	String  response =  request.DoPost("OfferStage",Stage,payload);
 	System.out.print(response);
+	return response;
 	}
 
 	
