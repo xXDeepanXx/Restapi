@@ -3,8 +3,11 @@ package ila.restclient.creditmantri;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
+import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
+
+import org.apache.commons.lang.builder.ToStringBuilder;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -35,7 +38,7 @@ public class Answer {
             try {
                 input.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace();  
             }
         }
     }
@@ -78,6 +81,7 @@ public String getAnswer() {
 return answer;
 }
 
+
 @JsonProperty("answer")
 public void setAnswer(String answer) {
 this.answer = answer;
@@ -88,15 +92,35 @@ this.answerSlug = answerSlug;
 }
 
 public void setAnswer(String questionSlug,String answer) {
+
 this.setAnswer(answer);
 this.setAnswerSlug(answer);
+this.setQuestionSlug(questionSlug);
 try {
 this.setQuestionId(Integer.parseInt(prop.getProperty(questionSlug)));
 }catch (Exception e) {
-	e.printStackTrace();
-	System.out.println(questionSlug);}
-this.setQuestionSlug(questionSlug);
+	//e.printStackTrace();
+	MyLogger.log(Level.WARNING, "Invalid Question Slug : " + questionSlug + "    Skipping... " );
+	//System.out.println(questionSlug);}
+	this.setQuestionSlug(null);
+	this.setAnswer(null);
+	this.setAnswerSlug(null);
 
+
+	}
 }
+
+public static String toString(List<Answer> answer) {
+String answerlist = null ;
+	for (int i=0;i<answer.size();i++)
+	{ if (answerlist == null) {answerlist = "[" +answer.get(i).getQuestionSlug()+":"+ answer.get(i).getAnswer()+"]";}
+	else {
+		answerlist.concat("[" +answer.get(i).getQuestionSlug()+":"+ answer.get(i).getAnswer()+"]");
+	}//answerlist = answerlist + answer.get(i).getAnswer();
+	}
+	System.out.println(answerlist);
+	return answerlist;
+}
+
 
 }

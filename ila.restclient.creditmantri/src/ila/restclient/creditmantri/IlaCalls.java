@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -33,7 +34,7 @@ public class IlaCalls {
 		Boolean notAtEnd= true;
 	
 		
-		FileInputStream excelFile = null;
+		FileInputStream excelFile = null; 
 		try {
 			excelFile = new FileInputStream(new File(args[0]));
 		} catch (FileNotFoundException e1) {
@@ -45,7 +46,7 @@ public class IlaCalls {
 			workbook = new XSSFWorkbook(excelFile);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace(); 
+			e.printStackTrace();  
 		}
         Sheet datatypeSheet = workbook.getSheetAt(0);
         Iterator<Row> iterator = datatypeSheet.iterator();
@@ -74,18 +75,11 @@ public class IlaCalls {
              String type = formatter.formatCellValue(cellIterator.next());
              String Action = formatter.formatCellValue(cellIterator.next());
              
-             //if(user.equals("UserName"))
-             //{continue;}
              MyLogger.log(Level.INFO,"User :" + user + "  |Offer Type : "+type+"  |Action : "+   Action);
              if (!user.equals(prevuser)||user.equals(null))
              {a = new IlaApi(user,pass);}
-             //MyLogger.log(Level.INFO, (a.statuscode));
-             
-             //System.out.println(a.statuscode);
              switch (a.statuscode)
              { 
-             //case 9999: MyLogger.log(Level.SEVERE,("Skipping record--- |User ID : "+user+"|Offer Type:"+ type+"|Action:"+ Action));
-             //break;
              case 200:
              	switch (Action)
              		{
@@ -101,21 +95,75 @@ public class IlaCalls {
              			int updateCount = 0;
              			while (cellIterator.hasNext()) 
              				{
-             					//if(!formatter.formatCellValue(cellIterator.next()).isEmpty())
              					{
              					Answer answer = new Answer();
-            		      		try {
-            		      			answer.setAnswer(formatter.formatCellValue(cellIterator.next()),formatter.formatCellValue(cellIterator.next()) );
+             					String question = formatter.formatCellValue(cellIterator.next());
+             					String ans = formatter.formatCellValue(cellIterator.next());
+             					if (question != null|| !question.isEmpty())
+            		      		{try {
+            		      			answer.setAnswer(question,ans);
             		      			updateCount++;
             		      		} catch (NoSuchElementException e) {}
             		      		if (updateCount > 0) {
             		      			answerarray.add(answer); 
-            		      		}}
+            		      		}}}
              				}
              			if (updateCount > 0) {
              			a.UpdateAnswersList(type, answerarray);
+             			a.MoveStageAll(type);
              			}
+             			a.AllOffers(type);
              			break;
+             	case "Compare":
+         			List<Answer> answerarrayA = new ArrayList<Answer>();
+         			List<Answer> answerarrayB = new ArrayList<Answer>();
+         			int updateCount1 = 0;
+         			//int updateCountB = 0;
+         			String AnswerA = null;
+         			String AnswerB = null;
+         			while (cellIterator.hasNext()) 
+         				{String question,ans = null;
+         				try {
+         				 question = formatter.formatCellValue(cellIterator.next());
+     					 ans = formatter.formatCellValue(cellIterator.next());
+         				}catch (NoSuchElementException e) {break;}
+     					if (question != null|| !question.isEmpty()) {
+         					try {
+         					 String compareAnswer[] = ans.split("&&");
+         					 AnswerA = compareAnswer[0];
+         					AnswerB = compareAnswer[1];
+         					}catch  (NoSuchElementException e) {}
+         					{
+         					Answer answer1 = new Answer();
+         					Answer answer2 = new Answer();
+        		      		try {
+        		      			answer1.setAnswer(question,AnswerA );
+        		      			answer2.setAnswer(question,AnswerB );
+        		      			updateCount1++;
+        		      		} catch (NoSuchElementException e) {}
+        		      		if (updateCount1 > 0) {
+        		      			answerarrayA.add(answer1); 
+        		      			answerarrayB.add(answer2); 
+        		      		}
+        		      		
+         					
+         					}}}
+         				//System.out.println("Test");
+         			a.compare(type,answerarrayA,answerarrayB);
+         				
+         			/*if (updateCountA > 0) {
+         			a.UpdateAnswersList(type, answerarrayA);
+         			a.MoveStageAll(type);
+         			}
+         			a.AllOffers(type);
+         			
+         			if (updateCountB > 0) {
+             			a.UpdateAnswersList(type, answerarrayB);
+             			a.MoveStageAll(type);
+             			}
+             			a.AllOffers(type);*/
+         			break;
+         	
              	case "Save Default-Salaried": 
              		Sheet defaultValues = workbook.getSheetAt(4);
              		Iterator<Row> defaultValuesRows = defaultValues.iterator();
@@ -127,9 +175,6 @@ public class IlaCalls {
                         Iterator<Cell> defaultcellIterator = defaultcurrentRow.iterator();
                         String DefaultType = formatter.formatCellValue(defaultcellIterator.next());
                         
-                        //System.out.println(DefaultType);
-                        //System.out.println(type);
-                        
                        if(DefaultType.equals(type)||DefaultType.equals(type.concat("-Sal")))
                        {
                     	   String RawData  = formatter.formatCellValue(defaultcellIterator.next());
@@ -138,6 +183,7 @@ public class IlaCalls {
                         
              		}
              		a.MoveStageAll(type);
+             		a.AllOffers(type);
              		break;
              	case "Save Default-Self Employed": 
              		Sheet defaultValues1 = workbook.getSheetAt(4);
@@ -150,9 +196,6 @@ public class IlaCalls {
                         Iterator<Cell> defaultcellIterator = defaultcurrentRow.iterator();
                         String DefaultType = formatter.formatCellValue(defaultcellIterator.next());
                         
-                        //System.out.println(DefaultType);
-                        //System.out.println(type);
-                        
                        if(DefaultType.equals(type)||DefaultType.equals(type.concat("-Self")))
                        {
                     	   String RawData  = formatter.formatCellValue(defaultcellIterator.next());
@@ -161,6 +204,7 @@ public class IlaCalls {
                         
              		}
              		a.MoveStageAll(type);
+             		a.AllOffers(type);
              		break;
              	case "Save Default-Self Employed Professional": 
              		Sheet defaultValues11 = workbook.getSheetAt(4);
@@ -173,9 +217,6 @@ public class IlaCalls {
                         Iterator<Cell> defaultcellIterator = defaultcurrentRow.iterator();
                         String DefaultType = formatter.formatCellValue(defaultcellIterator.next());
                         
-                        //System.out.println(DefaultType);
-                        //System.out.println(type);
-                        
                        if(DefaultType.equals(type)||DefaultType.equals(type.concat("-SelfProf")))
                        {
                     	   String RawData  = formatter.formatCellValue(defaultcellIterator.next());
@@ -184,6 +225,7 @@ public class IlaCalls {
                         
              		}
              		a.MoveStageAll(type);
+             		a.AllOffers(type);
              		break;  
              		}
              }
